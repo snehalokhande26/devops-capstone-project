@@ -5,10 +5,13 @@ metadata:
 spec:
   workspaces:
     - name: pipeline-workspace
+
   params:
     - name: repo-url
     - name: branch
       default: main
+    - name: build-image
+
   tasks:
     - name: init
       workspaces:
@@ -39,7 +42,7 @@ spec:
         name: flake8
       params:
         - name: image
-          value: "python:3.9-slim"
+          value: python:3.9-slim
         - name: args
           value:
             - "--count"
@@ -57,8 +60,22 @@ spec:
         name: nose
       params:
         - name: database_uri
-          value: "sqlite:///test.db"
+          value: sqlite:///test.db
         - name: args
           value: "-v --with-spec --spec-color"
       runAfter:
+        - lint
+
+    - name: build
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      params:
+        - name: IMAGE
+          value: $(params.build-image)
+      runAfter:
+        - tests
         - lint
